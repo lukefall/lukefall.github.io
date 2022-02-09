@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .gridlines line {
+      stroke: #bbb;
+    }
+
+    .gridlines .domain {
+      stroke: none;
+    }
+  </style>
+
+<body>
+  <h1>INFO 5311 Homework 1</h1>
+  <h2> Kefan Lu kl653 </h2>
+  <p id="1">
+  <div>
+    <svg id="scatterplot" height="1000" width="1500" style="margin:20px"></svg>
+  </div>
+
+  <script>
+    const svg = d3.select("#scatterplot");
+    const width = svg.attr("width");
+    const height = svg.attr("height");
+    const margin = { top: 10, right: 210, bottom: 100, left: 200 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    let chartArea = svg.append("g").attr("id", "points")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    let annotations = svg.append("g").attr("id", "annotations");
+    const requestData = async function () {
+      let data = await d3.csv("https://github.com/lukefall/info-5311/blob/main/TreeData.csv", d3.autoType);
+
+      dict1 = {};
+      dict2 = {};
+      careTaker = [];
+      species = [];
+      caretakerRank = [];
+      count = [];
+      data.forEach(function (d) {
+        dict1[[d.qSpecies, d.qCaretaker]] = (dict1[[d.qSpecies, d.qCaretaker]] || 0) + 1;
+        dict2[d.qCaretaker] = (dict2[d.qCaretaker] || 0) + 1;
+        careTaker.push(d.qCaretaker);
+        species.push(d.qSpecies);
+      });
+
+      data.forEach(function (d) {
+        d.Count = dict1[[d.qSpecies, d.qCaretaker]]
+      });
+
+      let caretakerCount = Object.keys(dict2).map(function (key) { return [key, dict2[key]] });
+      caretakerCount.sort(function (one, two) { return two[1] - one[1] });
+      caretakerCount.forEach(function (d) { caretakerRank.push(d[0]) });
+
+      const caretakerScale = d3.scaleBand()
+        .domain(caretakerRank)
+        .range([0, chartHeight]);
+
+
+      dict1_keys = Object.keys(dict1);
+      dict1_keys.forEach(function (key) { count.push(dict1[key]) });
+      const countExtent = d3.extent(count);
+      const countScale = d3.scaleLog().domain(countExtent).range([0, chartWidth]);
+
+      let treeType = new Set(species)
+      treeType = Array.from(treeType);
+      palette = ['#ff0000', '#ff9c00', '#eeff00', '#1eff00', '#00beff', '#001eff', '#bd00ff', '#ffc2cd']
+      const treeScale = d3.scaleOrdinal().domain(treeType).range(palette);
+
+      let bottomAxis = d3.axisBottom(countScale)
+      let bottomGridlines = d3.axisBottom(countScale)
+        .tickSize(-chartHeight - 10)
+        .tickFormat("");
+      annotations.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(" + margin.left + "," + (chartHeight + margin.top + 10) + ")")
+        .call(bottomAxis);
+      annotations.append("g")
+        .attr("class", "x gridlines")
+        .attr("transform", "translate(" + margin.left + "," + (chartHeight + margin.top + 10) + ")")
+        .call(bottomGridlines);
+      annotations.append("text")
+        .attr("class", "x label")
+        .attr("font-size", "20px")
+        .attr("text-anchor", "middle")
+        .attr("transform", `translate(${margin.left + chartWidth / 2},${chartHeight + margin.top + 70})`)
+        .attr("y", -20)
+        .text("Number of Tree");
+
+      let leftAxis = d3.axisLeft(caretakerScale)
+      let leftGridlines = d3.axisLeft(caretakerScale)
+        .tickSize(-chartWidth - 10)
+        .tickFormat("");
+      annotations.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(" + (margin.left - 10) + "," + margin.top + ")")
+        .call(leftAxis)
+      annotations.append("g")
+        .attr("class", "y gridlines")
+        .attr("transform", "translate(" + (margin.left - 10) + "," + margin.top + ")")
+        .call(leftGridlines);
+      annotations.append("text")
+        .attr("class", "y label")
+        .attr("font-size", "20px")
+        .attr("text-anchor", "middle")
+        .attr("transform", `translate(${margin.left - 100},${margin.top + chartHeight / 2}) translate(-45, 0) rotate(-90)`)
+        .text("Caretaker Type");
+
+      let circles = chartArea.selectAll("circle").data(data)
+        .join("circle")
+        .attr("cx", d => countScale(d.Count))
+        .attr("cy", d => caretakerScale(d.qCaretaker) + 20)
+        .attr("r", 8)
+        .style("fill", d => treeScale(d.qSpecies))
+        .attr("opacity", 0.8);
+
+      let legendBox = svg.append("rect")
+        .attr("class", "legendBox")
+        .attr("transform", `translate(${margin.left + 15},${margin.top + 5})`)
+        .attr("x", 1085)
+        .attr("y", 595)
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("width", 200)
+        .attr("height", 300)
+        .attr("fill", "white")
+        .attr("stroke", "black")
+        .attr("stroke-width", "1px")
+
+      treeType.forEach((d, i) => {
+        commonName = d.split(" :: ")[1]
+        if (commonName == "Indian Laurel Fig Tree 'Green Gem'") {
+          commonName = "Indian Laurel Fig Tree"
+
+        }
+        svg.append("rect")
+          .attr("class", "colorrect")
+          .attr("transform", `translate(${margin.left + 15},${margin.top + 5})`)
+          .attr("x", 1090)
+          .attr("y", 600 + i * 40)
+          .attr("width", 15)
+          .attr("height", 12)
+          .style("fill", palette[i]);
+        svg.append("text")
+          .attr("id", "legendBox")
+          .attr("class", commonName)
+          .attr("transform", `translate(${margin.left + 15},${margin.top + 5})`)
+          .attr("x", 1110).attr("y", 610 + i * 40)
+          .text(commonName)
+          .attr('font-size', '15px')
+      });
+
+    };
+
+    requestData();
+  </script>
+  </p>
+</body>
+
+</html>
