@@ -33,7 +33,7 @@
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     let annotations = svg.append("g").attr("id", "annotations");
     const requestData = async function () {
-      let data = await d3.csv("https://github.com/lukefall/info-5311/blob/main/TreeData.csv", d3.autoType);
+      let data = await d3.csv("TreeData.csv", d3.autoType);
 
       dict1 = {};
       dict2 = {};
